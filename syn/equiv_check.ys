@@ -1,0 +1,49 @@
+# Formal Equivalence Check - Fixed Version
+# Works with Yosys 0.20 and above
+
+# ============================================
+# LOAD GOLDEN (RTL Reference)
+# ============================================
+design -reset
+
+read_verilog rtl/modules/full_adder.v
+read_verilog rtl/modules/adder_4bit.v
+read_verilog rtl/modules/logic_unit.v
+read_verilog rtl/modules/shift_unit.v
+read_verilog rtl/top/alu_4bit.v
+
+hierarchy -check -top alu_4bit
+proc
+opt
+flatten
+rename -top gold
+
+design -stash gold
+
+# ============================================
+# LOAD GATE (Synthesized Netlist)
+# ============================================
+design -reset
+
+read_verilog syn/netlists/alu_4bit_synth.v
+
+hierarchy -check -top alu_4bit
+proc
+opt
+flatten
+rename -top gate
+
+design -stash gate
+
+# ============================================
+# RUN EQUIVALENCE CHECK
+# ============================================
+design -reset
+
+design -copy-from gold -as gold gold
+design -copy-from gate -as gate gate
+
+equiv_make gold gate equiv
+hierarchy -top equiv
+equiv_simple -undef
+equiv_status -assert
